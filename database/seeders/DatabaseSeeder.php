@@ -19,6 +19,9 @@ class DatabaseSeeder extends Seeder
             SupervisorUserSeeder::class, // Usuarios supervisores de prueba
             TesoreriaUserSeeder::class,  // Usuarios de tesorería de prueba
             OrdenadorUserSeeder::class,  // Usuarios ordenadores de prueba
+            ContratacionUserSeeder::class,
+            CuentasCobroPruebaSeeder::class,
+            DemoUsersSeeder::class,
         ]);
     }
 }

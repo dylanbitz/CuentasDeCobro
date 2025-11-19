@@ -84,6 +84,11 @@ class RoleSeeder extends Seeder
                     'contractor_registration',
                     'contract_reports'
                 ]
+            ],
+            [
+                'name' => 'sinrol',
+                'description' => 'Sin rol - Usuario sin permisos especiales',
+                'permissions' => []
             ]
         ];
 

@@ -11,7 +11,6 @@ use App\Http\Controllers\ContratacionController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TesoreriaController;
 use App\Http\Controllers\OrdenadorController;
-use App\Http\Controllers\ContratacionController;
 
 // Ruta raíz redirige al login
 Route::get('/', function () {

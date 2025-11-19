@@ -19,39 +19,44 @@ class ContratacionController extends Controller
     /**
      * Display contratacion dashboard with real data
      */
-
-    public function dashboard()
-
     public function index()
-
     {
         $user = Auth::user();
-        
         // Verificar que el usuario sea de contratación
-
         if (!$user || !$user->hasRole('contratacion')) {
             abort(403, 'Acceso denegado. Solo el personal de contratación puede acceder a esta vista.');
         }
-
         // Obtener datos del dashboard
         $data = $this->getContratacionData();
-        
+        // Add $estadisticasMes to view data
+        $now = Carbon::now();
+        $mes = $now->month;
+        $anio = $now->year;
+        $estadisticasMes = [
+            'cuentas_mes' => CuentaCobro::whereMonth('created_at', $mes)->whereYear('created_at', $anio)->count(),
+            'aprobadas_mes' => CuentaCobro::whereMonth('created_at', $mes)->whereYear('created_at', $anio)->where('estado', CuentaCobro::ESTADO_APROBADA)->count(),
+            'rechazadas_mes' => CuentaCobro::whereMonth('created_at', $mes)->whereYear('created_at', $anio)->where('estado', CuentaCobro::ESTADO_RECHAZADA)->count(),
+            'valor_mes' => CuentaCobro::whereMonth('created_at', $mes)->whereYear('created_at', $anio)->sum('valor') ?? 0
+        ];
+        // Add $cuentasRecientes to view data
+        $cuentasRecientes = CuentaCobro::with('user')
+            ->where('estado', CuentaCobro::ESTADO_PENDIENTE_CONTRATACION)
+            ->orderBy('created_at', 'desc')
+            ->take(8)
+            ->get();
+        // Add $valorTotalPendiente to view data
         return view('contratacion.dashboard', array_merge($data, [
-            'user' => $user
+            'user' => $user,
+            'totalCuentas' => $data['totalContratos'] ?? 0,
+            'cuentasPendientesContratacion' => $data['contratosEnRevision'] ?? 0,
+            'cuentasAprobadas' => $data['contratosAprobados'] ?? 0,
+            'valorTotalPendiente' => $data['valorPendiente'] ?? 0,
+            'estadisticasMes' => $estadisticasMes,
+            'cuentasRecientes' => $cuentasRecientes
         ]));
-
-        if (!$user->hasRole('contratacion')) {
-            abort(403, 'Acceso denegado. Solo usuarios de contratación pueden acceder a esta vista.');
-        }
-
-        // Obtener datos principales de contratación
-        $dashboardData = $this->getContratacionData($user);
-        
-        return view('contratacion.dashboard', $dashboardData);
     }
-
     /**
-     * Display contratacion dashboard (alias)
+     * Alias para dashboard
      */
     public function dashboard()
     {
@@ -68,19 +73,29 @@ class ContratacionController extends Controller
 
         // Estadísticas principales usando CuentaCobro como base de contratos
         $totalContratos = CuentaCobro::count();
-        $contratosPendientes = CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE)->count();
-        $contratosEnRevision = CuentaCobro::where('estado', CuentaCobro::ESTADO_REVISION)->count();
-        $contratosAprobados = CuentaCobro::where('estado', CuentaCobro::ESTADO_APROBADO)->count();
-        $contratosPagados = CuentaCobro::where('estado', CuentaCobro::ESTADO_PAGADO)->count();
-        $contratosRechazados = CuentaCobro::where('estado', CuentaCobro::ESTADO_RECHAZADO)->count();
+        $contratosPendientes = CuentaCobro::whereIn('estado', [
+            CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR,
+            CuentaCobro::ESTADO_PENDIENTE_CONTRATACION,
+            CuentaCobro::ESTADO_PENDIENTE_TESORERIA,
+            CuentaCobro::ESTADO_PENDIENTE_ORDENADOR
+        ])->count();
+        $contratosEnRevision = CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE_CONTRATACION)->count();
+        $contratosAprobados = CuentaCobro::where('estado', CuentaCobro::ESTADO_APROBADA)->count();
+        $contratosPagados = CuentaCobro::where('estado', CuentaCobro::ESTADO_PAGADA)->count();
+        $contratosRechazados = CuentaCobro::where('estado', CuentaCobro::ESTADO_RECHAZADA)->count();
         $contratosBorrador = CuentaCobro::where('estado', CuentaCobro::ESTADO_BORRADOR)->count();
 
         // Valores monetarios
         $valorTotalContratos = CuentaCobro::sum('valor') ?? 0;
-        $valorPendiente = CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE)->sum('valor') ?? 0;
-        $valorEnRevision = CuentaCobro::where('estado', CuentaCobro::ESTADO_REVISION)->sum('valor') ?? 0;
-        $valorAprobado = CuentaCobro::where('estado', CuentaCobro::ESTADO_APROBADO)->sum('valor') ?? 0;
-        $valorPagado = CuentaCobro::where('estado', CuentaCobro::ESTADO_PAGADO)->sum('valor') ?? 0;
+        $valorPendiente = CuentaCobro::whereIn('estado', [
+            CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR,
+            CuentaCobro::ESTADO_PENDIENTE_CONTRATACION,
+            CuentaCobro::ESTADO_PENDIENTE_TESORERIA,
+            CuentaCobro::ESTADO_PENDIENTE_ORDENADOR
+        ])->sum('valor') ?? 0;
+        $valorEnRevision = CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE_CONTRATACION)->sum('valor') ?? 0;
+        $valorAprobado = CuentaCobro::where('estado', CuentaCobro::ESTADO_APROBADA)->sum('valor') ?? 0;
+        $valorPagado = CuentaCobro::where('estado', CuentaCobro::ESTADO_PAGADA)->sum('valor') ?? 0;
 
         // Contratistas/Proveedores activos
         $contratistaRole = Roles::where('name', 'contratista')->first();
@@ -95,7 +110,12 @@ class ContratacionController extends Controller
         $promedioPorContrato = $totalContratos > 0 ? $valorTotalContratos / $totalContratos : 0;
         
         $proximosVencer = CuentaCobro::where('created_at', '<', $now->subDays(7))
-            ->whereIn('estado', [CuentaCobro::ESTADO_PENDIENTE, CuentaCobro::ESTADO_REVISION])
+            ->whereIn('estado', [
+                CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR,
+                CuentaCobro::ESTADO_PENDIENTE_CONTRATACION,
+                CuentaCobro::ESTADO_PENDIENTE_TESORERIA,
+                CuentaCobro::ESTADO_PENDIENTE_ORDENADOR
+            ])
             ->count();
 
         $contratosEsteMes = CuentaCobro::whereMonth('created_at', $now->month)
@@ -192,7 +212,13 @@ class ContratacionController extends Controller
         $notifications = [];
         $now = Carbon::now();
 
-        $cuentasPendientes = CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE)->count();
+        // Fix incorrect usage of undefined constants in getContratacionNotifications
+        $cuentasPendientes = CuentaCobro::whereIn('estado', [
+            CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR,
+            CuentaCobro::ESTADO_PENDIENTE_CONTRATACION,
+            CuentaCobro::ESTADO_PENDIENTE_TESORERIA,
+            CuentaCobro::ESTADO_PENDIENTE_ORDENADOR
+        ])->count();
         if ($cuentasPendientes > 0) {
             $notifications[] = [
                 'tipo' => 'warning',
@@ -202,7 +228,7 @@ class ContratacionController extends Controller
             ];
         }
 
-        $cuentasEnRevisionVencidas = CuentaCobro::where('estado', CuentaCobro::ESTADO_REVISION)
+        $cuentasEnRevisionVencidas = CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE_CONTRATACION)
             ->where('updated_at', '<', $now->subDays(5))
             ->count();
         if ($cuentasEnRevisionVencidas > 0) {
@@ -227,117 +253,6 @@ class ContratacionController extends Controller
         }]);
 
         // Filtros
-    private function getContratacionData($user)
-    {
-        $now = Carbon::now();
-
-        // Estadísticas principales de cuentas de cobro
-        $totalCuentas = CuentaCobro::count();
-        $cuentasPendientes = CuentaCobro::whereIn('estado', [
-            CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR,
-            CuentaCobro::ESTADO_PENDIENTE_CONTRATACION,
-            CuentaCobro::ESTADO_PENDIENTE_TESORERIA,
-            CuentaCobro::ESTADO_PENDIENTE_ORDENADOR
-        ])->count();
-        $cuentasPendientesContratacion = CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE_CONTRATACION)->count();
-        $cuentasAprobadas = CuentaCobro::where('estado', CuentaCobro::ESTADO_APROBADA)->count();
-        $cuentasRechazadas = CuentaCobro::where('estado', CuentaCobro::ESTADO_RECHAZADA)->count();
-        $cuentasPagadas = CuentaCobro::where('estado', CuentaCobro::ESTADO_PAGADA)->count();
-
-        // Valores monetarios
-        $valorTotalPendiente = CuentaCobro::whereIn('estado', [
-            CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR,
-            CuentaCobro::ESTADO_PENDIENTE_CONTRATACION,
-            CuentaCobro::ESTADO_PENDIENTE_TESORERIA,
-            CuentaCobro::ESTADO_PENDIENTE_ORDENADOR,
-            CuentaCobro::ESTADO_APROBADA
-        ])->sum('valor');
-        
-        $valorTotalAprobado = CuentaCobro::where('estado', CuentaCobro::ESTADO_APROBADA)->sum('valor');
-        $valorTotalPagado = CuentaCobro::where('estado', CuentaCobro::ESTADO_PAGADA)->sum('valor');
-
-        // Cuentas recientes para revisión (últimas 10)
-        $cuentasRecientes = CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE_CONTRATACION)
-            ->with(['user'])
-            ->latest()
-            ->limit(10)
-            ->get();
-
-        // Contratistas activos
-        $contratistasActivos = User::whereHas('role', function($query) {
-            $query->where('name', 'contratista');
-        })
-            ->whereHas('cuentasCobro', function($query) use ($now) {
-                $query->whereMonth('created_at', $now->month);
-            })
-            ->count();
-
-        // Estadísticas del mes actual
-        $estadisticasMes = [
-            'cuentas_mes' => CuentaCobro::whereMonth('created_at', $now->month)->count(),
-            'valor_mes' => CuentaCobro::whereMonth('created_at', $now->month)->sum('valor'),
-            'aprobadas_mes' => CuentaCobro::where('estado', CuentaCobro::ESTADO_APROBADA)
-                ->whereMonth('aprobado_contratacion_at', $now->month)
-                ->count(),
-            'rechazadas_mes' => CuentaCobro::where('estado', CuentaCobro::ESTADO_RECHAZADA)
-                ->whereMonth('rechazado_at', $now->month)
-                ->count()
-        ];
-
-        // Evolución semanal (últimas 4 semanas)
-        $evolucionSemanal = $this->getWeeklyEvolution();
-
-        // Notificaciones dinámicas para contratación
-        $notificaciones = $this->getContratacionNotifications();
-
-        // Tiempo promedio de revisión
-        $tiempoPromedioRevision = $this->getAverageReviewTime();
-
-        return [
-            'user' => $user,
-            'userRole' => $user->role->name,
-            
-            // Estadísticas principales
-            'totalCuentas' => $totalCuentas,
-            'cuentasPendientes' => $cuentasPendientes,
-            'cuentasPendientesContratacion' => $cuentasPendientesContratacion,
-            'cuentasAprobadas' => $cuentasAprobadas,
-            'cuentasRechazadas' => $cuentasRechazadas,
-            'cuentasPagadas' => $cuentasPagadas,
-            
-            // Valores monetarios
-            'valorTotalPendiente' => $valorTotalPendiente,
-            'valorTotalAprobado' => $valorTotalAprobado,
-            'valorTotalPagado' => $valorTotalPagado,
-            
-            // Colecciones de datos
-            'cuentasRecientes' => $cuentasRecientes,
-            'contratistasActivos' => $contratistasActivos,
-            'estadisticasMes' => $estadisticasMes,
-            'evolucionSemanal' => $evolucionSemanal,
-            'notificaciones' => $notificaciones,
-            
-            // Datos calculados
-            'porcentajeEficiencia' => $totalCuentas > 0 ? round((($cuentasAprobadas + $cuentasPagadas) / $totalCuentas) * 100, 1) : 0,
-            'tiempoPromedioRevision' => $tiempoPromedioRevision,
-        ];
-    }
-
-    /**
-     * Lista todas las cuentas de cobro para contratación
-     */
-    public function cuentasCobro(Request $request)
-    {
-        $user = Auth::user();
-        
-        if (!$user->hasRole('contratacion')) {
-            abort(403, 'Acceso denegado');
-        }
-
-        $query = CuentaCobro::with(['user']);
-
-        // Filtros de búsqueda
-
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
@@ -465,34 +380,7 @@ class ContratacionController extends Controller
         $contrato->update($validated);
 
         return redirect()->route('contratacion.contratos.show', $contrato->id)
-        if ($request->filled('mes')) {
-            $query->whereMonth('created_at', $request->mes);
-        }
-
-        // Ordenar por prioridad: pendientes contratación primero, luego por fecha
-        $cuentas = $query->orderByRaw("
-            CASE 
-                WHEN estado = 'pendiente_contratacion' THEN 1
-                WHEN estado = 'pendiente_tesoreria' THEN 2
-                WHEN estado = 'pendiente_ordenador' THEN 3
-                WHEN estado = 'rechazada' THEN 4
-                ELSE 5
-            END
-        ")
-        ->orderBy('created_at', 'desc')
-        ->paginate(20);
-
-        // Preparar información de archivos para cada cuenta
-        foreach ($cuentas as $cuenta) {
-            $cuenta->archivo_url = null;
-            $cuenta->archivo_nombre = 'Sin archivo';
-            if ($cuenta->ruta_archivo) {
-                $cuenta->archivo_url = route('cuentas-cobro.descargar', $cuenta->id);
-                $cuenta->archivo_nombre = basename($cuenta->ruta_archivo);
-            }
-        }
-
-        return view('contratacion.cuentas-cobro.index', compact('cuentas'));
+            ->with('success', 'Contrato actualizado exitosamente.');
     }
 
     /**
@@ -572,7 +460,6 @@ class ContratacionController extends Controller
         ]);
 
         return redirect()->route('contratacion.cuentas-cobro.show', $id)
-
             ->with('success', 'Cuenta de cobro actualizada exitosamente.');
     }
 
@@ -600,9 +487,10 @@ class ContratacionController extends Controller
 
     /**
      * Lista de procesos de contratación
-     */    public function procesosIndex(Request $request)
+     */
+    public function procesosIndex(Request $request)
     {
-        $procesos = CuentaCobro::select('estado', DB::raw('count(*) as total'), DB::raw('sum(valor) as valor_total'))
+        $procesos = CuentaCobro::select('estado', \DB::raw('count(*) as total'), \DB::raw('sum(valor) as valor_total'))
             ->groupBy('estado')
             ->get()
             ->map(function($proceso) {
@@ -645,29 +533,23 @@ class ContratacionController extends Controller
                         'descripcion' => 'Pagados exitosamente'
                     ]
                 ];
-
                 $config = $estadosConfig[$proceso->estado] ?? [
                     'color_gradient' => 'from-gray-500 to-slate-500',
                     'color' => 'gray',
                     'icono' => 'fas fa-question-circle',
                     'descripcion' => 'Estado desconocido'
-                ];                // Obtener contratos de este estado (convertir a array para la vista)
+                ];
                 $contratos = CuentaCobro::where('estado', $proceso->estado)
                     ->with(['user'])
                     ->orderBy('created_at', 'desc')
                     ->limit(5)
                     ->get()
                     ->toArray();
-
-                // Calcular proveedores únicos
                 $proveedoresUnicos = CuentaCobro::where('estado', $proceso->estado)
                     ->distinct('user_id')
                     ->count('user_id');
-
-                // Calcular porcentaje (basado en el total de contratos del sistema)
                 $totalContratos = CuentaCobro::count();
                 $porcentaje = $totalContratos > 0 ? round(($proceso->total / $totalContratos) * 100, 1) : 0;
-
                 return [
                     'id' => $proceso->estado,
                     'nombre' => CuentaCobro::getEstados()[$proceso->estado] ?? $proceso->estado,
@@ -682,24 +564,19 @@ class ContratacionController extends Controller
                     'contratos' => $contratos,
                     'proveedores_unicos' => $proveedoresUnicos,
                     'porcentaje' => $porcentaje,
-                    'updated_at' => Carbon::now(),
+                    'updated_at' => now(),
                 ];
             });
-
         $procesosPorEstado = [];
         foreach (CuentaCobro::getEstados() as $estadoKey => $estadoNombre) {
             $procesosPorEstado[$estadoKey] = CuentaCobro::where('estado', $estadoKey)->get();
         }
-
         $procesosCompletados = CuentaCobro::where('estado', CuentaCobro::ESTADO_PAGADO)->count();
         $valorTotal = CuentaCobro::sum('valor') ?? 0;
-
         $proveedores = \App\Models\User::whereHas('role', function($query) {
             $query->where('name', 'contratista');
         })->select('id', 'name')->get();
-
         $procesosRecientes = \App\Models\CuentaCobro::orderBy('created_at', 'desc')->limit(8)->get();
-
         return view('contratacion.procesos.index', compact('procesos', 'procesosCompletados', 'valorTotal', 'proveedores', 'procesosPorEstado', 'procesosRecientes'));
     }
 
@@ -767,11 +644,17 @@ class ContratacionController extends Controller
 
         $contratos = CuentaCobro::where('user_id', $id)
             ->orderBy('created_at', 'desc')
-            ->paginate(10);        $estadisticas = [
+            ->paginate(10);        // Fix incorrect usage of undefined constants in proveedoresShow
+        $estadisticas = [
             'total_contratos' => $proveedor->cuenta_cobros()->count(),
             'valor_total' => $proveedor->cuenta_cobros()->sum('valor'),
             'contratos_activos' => $proveedor->cuenta_cobros()
-                ->whereIn('estado', [CuentaCobro::ESTADO_PENDIENTE, CuentaCobro::ESTADO_REVISION])
+                ->whereIn('estado', [
+                    CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR,
+                    CuentaCobro::ESTADO_PENDIENTE_CONTRATACION,
+                    CuentaCobro::ESTADO_PENDIENTE_TESORERIA,
+                    CuentaCobro::ESTADO_PENDIENTE_ORDENADOR
+                ])
                 ->count(),
             'ultimo_contrato' => $proveedor->cuenta_cobros()->latest()->first()?->created_at,
         ];
@@ -820,6 +703,8 @@ class ContratacionController extends Controller
     {
         $data = $this->getContratacionData();
         return response()->json($data);
+    }
+
     private function getWeeklyEvolution()
     {
         $evolution = [];
@@ -849,70 +734,6 @@ class ContratacionController extends Controller
         }
 
         return $evolution;
-    }
-
-    /**
-     * Get contratacion-specific notifications
-     */
-    private function getContratacionNotifications()
-    {
-        $notifications = [];
-
-        // Cuentas urgentes pendientes de revisión
-        $urgentes = CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE_CONTRATACION)
-            ->where('aprobado_supervisor_at', '<=', Carbon::now()->subDays(3))
-            ->count();
-
-        if ($urgentes > 0) {
-            $notifications[] = [
-                'type' => 'error',
-                'icon' => 'fas fa-exclamation-triangle',
-                'title' => 'Cuentas urgentes',
-                'message' => "Tienes {$urgentes} cuenta(s) pendiente(s) de revisión por más de 3 días",
-                'action' => route('contratacion.cuentas-cobro.index', ['estado' => 'pendiente_contratacion']),
-                'action_text' => 'Revisar ahora',
-                'priority' => 'high'
-            ];
-        }
-
-        // Cuentas pendientes de contratación
-        $pendientes = CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE_CONTRATACION)->count();
-        if ($pendientes > 0) {
-            $notifications[] = [
-                'type' => 'info',
-                'icon' => 'fas fa-search',
-                'title' => 'Pendientes de tu aprobación',
-                'message' => "Hay {$pendientes} cuenta(s) esperando tu aprobación",
-                'action' => route('contratacion.cuentas-cobro.index', ['estado' => 'pendiente_contratacion']),
-                'action_text' => 'Ver detalles',
-                'priority' => 'medium'
-            ];
-        }
-
-        // Cuentas aprobadas recientes por contratación
-        $aprobadas = CuentaCobro::whereNotNull('aprobado_contratacion_at')
-            ->where('aprobado_contratacion_at', '>=', Carbon::now()->subDays(7))
-            ->count();
-
-        if ($aprobadas > 0) {
-            $notifications[] = [
-                'type' => 'success',
-                'icon' => 'fas fa-check-circle',
-                'title' => 'Cuentas aprobadas',
-                'message' => "Has aprobado {$aprobadas} cuenta(s) en los últimos 7 días",
-                'action' => route('contratacion.cuentas-cobro.index'),
-                'action_text' => 'Ver listado',
-                'priority' => 'low'
-            ];
-        }
-
-        // Ordenar por prioridad
-        $priorityOrder = ['high' => 1, 'medium' => 2, 'low' => 3];
-        usort($notifications, function($a, $b) use ($priorityOrder) {
-            return $priorityOrder[$a['priority']] - $priorityOrder[$b['priority']];
-        });
-
-        return $notifications;
     }
 
     /**

@@ -57,35 +57,35 @@ class CuentasCobroPruebaSeeder extends Seeder
                 'proyecto_servicio' => 'Desarrollo de Sistema de Inventario Municipal',
                 'valor' => 2500000,
                 'descripcion' => 'Desarrollo completo del sistema de inventario para la alcaldía municipal incluyendo módulos de entrada, salida y reportes.',
-                'estado' => CuentaCobro::ESTADO_APROBADO, // Para que el ordenador pueda autorizarlas
+                'estado' => CuentaCobro::ESTADO_APROBADA, // Para que el ordenador pueda autorizarlas
                 'fecha_emision' => Carbon::now()->subDays(5),
             ],
             [
                 'proyecto_servicio' => 'Mantenimiento de Infraestructura de Red',
                 'valor' => 1800000,
                 'descripcion' => 'Mantenimiento preventivo y correctivo de la infraestructura de red del municipio.',
-                'estado' => CuentaCobro::ESTADO_APROBADO,
+                'estado' => CuentaCobro::ESTADO_APROBADA,
                 'fecha_emision' => Carbon::now()->subDays(3),
             ],
             [
                 'proyecto_servicio' => 'Consultoría en Gestión Documental',
                 'valor' => 1200000,
                 'descripcion' => 'Asesoría para implementación de sistema de gestión documental digital.',
-                'estado' => CuentaCobro::ESTADO_APROBADO,
+                'estado' => CuentaCobro::ESTADO_APROBADA,
                 'fecha_emision' => Carbon::now()->subDays(7),
             ],
             [
                 'proyecto_servicio' => 'Capacitación en Seguridad Informática',
                 'valor' => 900000,
                 'descripcion' => 'Programa de capacitación para empleados municipales en seguridad informática.',
-                'estado' => CuentaCobro::ESTADO_APROBADO,
+                'estado' => CuentaCobro::ESTADO_APROBADA,
                 'fecha_emision' => Carbon::now()->subDays(2),
             ],
             [
                 'proyecto_servicio' => 'Desarrollo de Portal Web Ciudadano',
                 'valor' => 3200000,
                 'descripcion' => 'Creación de portal web para servicios ciudadanos en línea.',
-                'estado' => CuentaCobro::ESTADO_APROBADO,
+                'estado' => CuentaCobro::ESTADO_APROBADA,
                 'fecha_emision' => Carbon::now()->subDays(10),
             ],
             // Algunas cuentas ya pagadas para el historial del ordenador
@@ -93,14 +93,14 @@ class CuentasCobroPruebaSeeder extends Seeder
                 'proyecto_servicio' => 'Auditoría de Sistemas de Información',
                 'valor' => 1500000,
                 'descripcion' => 'Auditoría completa de los sistemas de información municipales.',
-                'estado' => CuentaCobro::ESTADO_PAGADO,
+                'estado' => CuentaCobro::ESTADO_PAGADA,
                 'fecha_emision' => Carbon::now()->subDays(20),
             ],
             [
                 'proyecto_servicio' => 'Implementación de Backup Automático',
                 'valor' => 800000,
                 'descripcion' => 'Configuración de sistema de respaldo automático para datos críticos.',
-                'estado' => CuentaCobro::ESTADO_PAGADO,
+                'estado' => CuentaCobro::ESTADO_PAGADA,
                 'fecha_emision' => Carbon::now()->subDays(25),
             ]
         ];
@@ -117,7 +117,7 @@ class CuentasCobroPruebaSeeder extends Seeder
                 'estado' => $cuentaData['estado'],
                 'descripcion' => $cuentaData['descripcion'],
                 'created_at' => $cuentaData['fecha_emision'],
-                'updated_at' => $cuentaData['estado'] === CuentaCobro::ESTADO_PAGADO 
+                'updated_at' => $cuentaData['estado'] === CuentaCobro::ESTADO_PAGADA 
                     ? $cuentaData['fecha_emision']->addDays(3) 
                     : $cuentaData['fecha_emision']->addDays(1),
             ]);
@@ -125,8 +125,8 @@ class CuentasCobroPruebaSeeder extends Seeder
             $this->command->info("✅ Cuenta de cobro #{$cuenta->id} creada: {$cuentaData['proyecto_servicio']} - Estado: {$cuentaData['estado']}");
         }
 
-        $totalAprobadas = CuentaCobro::where('estado', CuentaCobro::ESTADO_APROBADO)->count();
-        $totalPagadas = CuentaCobro::where('estado', CuentaCobro::ESTADO_PAGADO)->count();
+        $totalAprobadas = CuentaCobro::where('estado', CuentaCobro::ESTADO_APROBADA)->count();
+        $totalPagadas = CuentaCobro::where('estado', CuentaCobro::ESTADO_PAGADA)->count();
         
         $this->command->info('🎉 Cuentas de cobro de prueba creadas exitosamente!');
         $this->command->line('');

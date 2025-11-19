@@ -96,12 +96,12 @@ class User extends Authenticatable
     }
 
     /**
-
      * Alias para cuentasCobro - mantiene compatibilidad con vistas
      */
     public function cuenta_cobros()
     {
         return $this->hasMany(CuentaCobro::class);
+    }
 
     public function notifications()
     {
@@ -114,7 +114,6 @@ class User extends Authenticatable
     public function unreadNotifications()
     {
         return $this->hasMany(Notification::class)->where('leida', false);
-
     }
 
     /**
