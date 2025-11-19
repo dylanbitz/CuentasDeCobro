@@ -104,7 +104,7 @@
             </div>
 
             <!-- Archivo adjunto con visor -->
-            @if($cuenta->archivo_adjunto)
+            @if($cuenta->archivo_adjunto || $cuenta->ruta_archivo)
             <div class="glass-card p-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-xl font-semibold flex items-center">
@@ -112,35 +112,66 @@
                         Documento Adjunto
                     </h2>
                     <div class="flex space-x-2">
-                        <a href="{{ Storage::url($cuenta->archivo_adjunto) }}" 
-                           target="_blank"
-                           class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium text-sm">
-                            <i class="fas fa-external-link-alt mr-2"></i>
-                            Abrir en Nueva Pestaña
-                        </a>
-                        <a href="{{ Storage::url($cuenta->archivo_adjunto) }}" 
-                           download
-                           class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all font-medium text-sm">
-                            <i class="fas fa-download mr-2"></i>
-                            Descargar PDF
-                        </a>
+                        @if($cuenta->archivo_adjunto)
+                            {{-- Sistema nuevo con Storage público --}}
+                            <a href="{{ Storage::url($cuenta->archivo_adjunto) }}" 
+                               target="_blank"
+                               class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium text-sm">
+                                <i class="fas fa-external-link-alt mr-2"></i>
+                                Abrir en Nueva Pestaña
+                            </a>
+                            <a href="{{ Storage::url($cuenta->archivo_adjunto) }}" 
+                               download
+                               class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all font-medium text-sm">
+                                <i class="fas fa-download mr-2"></i>
+                                Descargar
+                            </a>
+                        @elseif($cuenta->ruta_archivo)
+                            {{-- Sistema antiguo con FTP - usar ruta de descarga del controlador --}}
+                            <a href="{{ route('cuentas-cobro.descargar', $cuenta->id) }}" 
+                               target="_blank"
+                               class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium text-sm">
+                                <i class="fas fa-external-link-alt mr-2"></i>
+                                Abrir en Nueva Pestaña
+                            </a>
+                            <a href="{{ route('cuentas-cobro.descargar', $cuenta->id) }}" 
+                               download
+                               class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all font-medium text-sm">
+                                <i class="fas fa-download mr-2"></i>
+                                Descargar
+                            </a>
+                        @endif
                     </div>
                 </div>
                 
                 <!-- Visor de PDF embebido -->
                 <div class="bg-gray-100 rounded-xl overflow-hidden border-2 border-gray-300" style="height: 800px;">
-                    <iframe 
-                        src="{{ Storage::url($cuenta->archivo_adjunto) }}" 
-                        class="w-full h-full"
-                        frameborder="0"
-                        type="application/pdf">
-                        <p class="p-4 text-center text-gray-600">
-                            Tu navegador no puede mostrar el PDF. 
-                            <a href="{{ Storage::url($cuenta->archivo_adjunto) }}" class="text-blue-600 hover:underline" download>
-                                Haz clic aquí para descargarlo
+                    @if($cuenta->archivo_adjunto)
+                        {{-- Sistema nuevo con Storage público --}}
+                        <iframe 
+                            src="{{ Storage::url($cuenta->archivo_adjunto) }}" 
+                            class="w-full h-full"
+                            frameborder="0"
+                            type="application/pdf">
+                            <p class="p-4 text-center text-gray-600">
+                                Tu navegador no puede mostrar el PDF. 
+                                <a href="{{ Storage::url($cuenta->archivo_adjunto) }}" class="text-blue-600 hover:underline" download>
+                                    Haz clic aquí para descargarlo
+                                </a>
+                            </p>
+                        </iframe>
+                    @elseif($cuenta->ruta_archivo)
+                        {{-- Sistema antiguo con FTP --}}
+                        <div class="flex flex-col items-center justify-center h-full bg-gradient-to-br from-blue-50 to-indigo-50">
+                            <i class="fas fa-file-pdf text-6xl text-red-500 mb-4"></i>
+                            <p class="text-lg font-semibold text-gray-800 mb-2">{{ basename($cuenta->ruta_archivo) }}</p>
+                            <a href="{{ route('cuentas-cobro.descargar', $cuenta->id) }}" 
+                               class="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all font-medium shadow-lg hover:shadow-xl">
+                                <i class="fas fa-download mr-2"></i>
+                                Descargar Archivo
                             </a>
-                        </p>
-                    </iframe>
+                        </div>
+                    @endif
                 </div>
             </div>
             @endif
