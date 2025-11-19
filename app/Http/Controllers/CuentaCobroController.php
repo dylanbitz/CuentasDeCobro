@@ -313,19 +313,25 @@ class CuentaCobroController extends Controller
         if ($userRole === 'contratista' && $cuenta->user_id === $user->id) {
             // Contratista solo puede enviar a pendiente desde borrador
             $puedeActualizar = $cuenta->estado === CuentaCobro::ESTADO_BORRADOR && 
-                              $nuevoEstado === CuentaCobro::ESTADO_PENDIENTE;
+                              $nuevoEstado === CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR;
         } elseif ($userRole === 'supervisor') {
-            // Supervisor puede aprobar/rechazar desde pendiente
-            $puedeActualizar = $cuenta->estado === CuentaCobro::ESTADO_PENDIENTE && 
-                              in_array($nuevoEstado, [CuentaCobro::ESTADO_REVISION, CuentaCobro::ESTADO_RECHAZADO]);
-        } elseif ($userRole === 'ordenador_gasto') {
-            // Ordenador del gasto puede aprobar desde revisión
-            $puedeActualizar = $cuenta->estado === CuentaCobro::ESTADO_REVISION && 
-                              in_array($nuevoEstado, [CuentaCobro::ESTADO_APROBADO, CuentaCobro::ESTADO_RECHAZADO]);
+            // Supervisor puede aprobar/rechazar desde pendiente_supervisor
+            $puedeActualizar = $cuenta->estado === CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR && 
+                              in_array($nuevoEstado, [CuentaCobro::ESTADO_PENDIENTE_CONTRATACION, CuentaCobro::ESTADO_RECHAZADA]);
+        } elseif ($userRole === 'contratacion') {
+            // Contratación puede aprobar/rechazar
+            $puedeActualizar = $cuenta->estado === CuentaCobro::ESTADO_PENDIENTE_CONTRATACION && 
+                              in_array($nuevoEstado, [CuentaCobro::ESTADO_PENDIENTE_TESORERIA, CuentaCobro::ESTADO_RECHAZADA]);
         } elseif ($userRole === 'tesoreria') {
-            // Tesorería puede marcar como pagado desde aprobado
-            $puedeActualizar = $cuenta->estado === CuentaCobro::ESTADO_APROBADO && 
-                              $nuevoEstado === CuentaCobro::ESTADO_PAGADO;
+            // Tesorería puede aprobar/rechazar o marcar como pagado
+            $puedeActualizar = ($cuenta->estado === CuentaCobro::ESTADO_PENDIENTE_TESORERIA && 
+                              in_array($nuevoEstado, [CuentaCobro::ESTADO_PENDIENTE_ORDENADOR, CuentaCobro::ESTADO_RECHAZADA])) ||
+                              ($cuenta->estado === CuentaCobro::ESTADO_APROBADA && 
+                              $nuevoEstado === CuentaCobro::ESTADO_PAGADA);
+        } elseif ($userRole === 'ordenador_gasto' || $userRole === 'alcalde') {
+            // Ordenador del gasto puede aprobar desde pendiente_ordenador
+            $puedeActualizar = $cuenta->estado === CuentaCobro::ESTADO_PENDIENTE_ORDENADOR && 
+                              in_array($nuevoEstado, [CuentaCobro::ESTADO_APROBADA, CuentaCobro::ESTADO_RECHAZADA]);
         }
         
         if (!$puedeActualizar) {
@@ -358,15 +364,23 @@ class CuentaCobroController extends Controller
             $estadisticas = [
                 'total' => CuentaCobro::where('user_id', $user->id)->count(),
                 'borradores' => CuentaCobro::where('user_id', $user->id)->where('estado', CuentaCobro::ESTADO_BORRADOR)->count(),
-                'pendientes' => CuentaCobro::where('user_id', $user->id)->where('estado', CuentaCobro::ESTADO_PENDIENTE)->count(),
-                'aprobadas' => CuentaCobro::where('user_id', $user->id)->where('estado', CuentaCobro::ESTADO_PAGADO)->count(),
-                'valor_total' => CuentaCobro::where('user_id', $user->id)->where('estado', CuentaCobro::ESTADO_PAGADO)->sum('valor')
+                'pendientes' => CuentaCobro::where('user_id', $user->id)
+                    ->whereIn('estado', [
+                        CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR,
+                        CuentaCobro::ESTADO_PENDIENTE_CONTRATACION,
+                        CuentaCobro::ESTADO_PENDIENTE_TESORERIA,
+                        CuentaCobro::ESTADO_PENDIENTE_ORDENADOR
+                    ])->count(),
+                'aprobadas' => CuentaCobro::where('user_id', $user->id)->where('estado', CuentaCobro::ESTADO_PAGADA)->count(),
+                'valor_total' => CuentaCobro::where('user_id', $user->id)->where('estado', CuentaCobro::ESTADO_PAGADA)->sum('valor')
             ];
         } elseif ($userRole === 'supervisor') {
             $estadisticas = [
-                'pendientes_revision' => CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE)->count(),
-                'revisadas_hoy' => CuentaCobro::whereIn('estado', [CuentaCobro::ESTADO_REVISION, CuentaCobro::ESTADO_RECHAZADO])
-                    ->whereDate('updated_at', today())->count(),
+                'pendientes_revision' => CuentaCobro::where('estado', CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR)->count(),
+                'revisadas_hoy' => CuentaCobro::whereIn('estado', [
+                        CuentaCobro::ESTADO_PENDIENTE_CONTRATACION,
+                        CuentaCobro::ESTADO_RECHAZADA
+                    ])->whereDate('updated_at', today())->count(),
                 'total_sistema' => CuentaCobro::count()
             ];
         }
@@ -585,7 +599,7 @@ class CuentaCobroController extends Controller
                             ->firstOrFail();
 
         // Solo se pueden editar borradores y rechazadas
-        if (!in_array($cuenta->estado, [CuentaCobro::ESTADO_BORRADOR, CuentaCobro::ESTADO_RECHAZADO])) {
+        if (!in_array($cuenta->estado, [CuentaCobro::ESTADO_BORRADOR, CuentaCobro::ESTADO_RECHAZADA])) {
             return redirect()->route('contratista.cuentas.index')
                 ->with('error', 'Esta cuenta no puede ser editada en su estado actual: ' . ucfirst($cuenta->estado));
         }
@@ -608,7 +622,7 @@ class CuentaCobroController extends Controller
                             ->where('user_id', $user->id)
                             ->firstOrFail();
 
-        if (!in_array($cuenta->estado, [CuentaCobro::ESTADO_BORRADOR, CuentaCobro::ESTADO_RECHAZADO])) {
+        if (!in_array($cuenta->estado, [CuentaCobro::ESTADO_BORRADOR, CuentaCobro::ESTADO_RECHAZADA])) {
             return redirect()->route('contratista.cuentas.index')
                 ->with('error', 'Esta cuenta no puede ser editada en su estado actual.');
         }
