@@ -109,7 +109,10 @@ class AuthController extends Controller
 
         // Datos específicos para contratación
         if ($user->hasRole('contratacion')) {
+<<<<<<< HEAD
             // Redirigir a dashboard específico de contratación
+=======
+>>>>>>> c39fd9d004c89eba81ced23caf7d5327a14438c2
             return redirect()->route('contratacion.dashboard');
         }
 

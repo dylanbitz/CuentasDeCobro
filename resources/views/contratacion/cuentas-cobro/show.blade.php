@@ -1,12 +1,12 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Revisar Cuenta de Cobro - Supervisor')
+@section('title', 'Revisar Cuenta de Cobro - Contratación')
 
 @section('breadcrumb')
     @include('components.navigation.breadcrumb', [
         'items' => [
-            ['label' => 'Dashboard Supervisor', 'url' => route('supervisor.dashboard')],
-            ['label' => 'Cuentas de Cobro', 'url' => route('supervisor.cuentas-cobro.index')],
+            ['label' => 'Dashboard Contratación', 'url' => route('contratacion.dashboard')],
+            ['label' => 'Cuentas de Cobro', 'url' => route('contratacion.cuentas-cobro.index')],
             ['label' => 'Cuenta #' . $cuenta->id]
         ]
     ])
@@ -26,7 +26,7 @@
             </div>
             
             <div class="flex flex-wrap gap-3">
-                <a href="{{ route('supervisor.cuentas-cobro.index') }}" 
+                <a href="{{ route('contratacion.cuentas-cobro.index') }}" 
                    class="inline-flex items-center px-4 py-2 border-2 border-gray-300 text-gray-700 bg-white rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all font-medium">
                     <i class="fas fa-arrow-left mr-2"></i>
                     Volver a Lista
@@ -54,16 +54,15 @@
             </div>
             <div class="text-center">
                 <span class="inline-flex items-center px-6 py-3 rounded-xl text-lg font-bold shadow-lg
-                    @if($cuenta->estado === 'pagado') bg-green-100 text-green-800 border-2 border-green-300
-                    @elseif($cuenta->estado === 'aprobado') bg-blue-100 text-blue-800 border-2 border-blue-300
-                    @elseif($cuenta->estado === 'rechazado') bg-red-100 text-red-800 border-2 border-red-300
-                    @elseif($cuenta->estado === 'revision') bg-yellow-100 text-yellow-800 border-2 border-yellow-300
-                    @elseif($cuenta->estado === 'pendiente') bg-orange-100 text-orange-800 border-2 border-orange-300
+                    @if($cuenta->estado === 'pagada') bg-green-100 text-green-800 border-2 border-green-300
+                    @elseif($cuenta->estado === 'aprobada') bg-blue-100 text-blue-800 border-2 border-blue-300
+                    @elseif($cuenta->estado === 'rechazada') bg-red-100 text-red-800 border-2 border-red-300
+                    @elseif(str_contains($cuenta->estado, 'pendiente')) bg-yellow-100 text-yellow-800 border-2 border-yellow-300
                     @else bg-gray-100 text-gray-800 border-2 border-gray-300
                     @endif
                 ">
                     <i class="fas fa-circle text-xs mr-2 animate-pulse"></i>
-                    {{ strtoupper($cuenta->estado) }}
+                    {{ strtoupper(str_replace('_', ' ', $cuenta->estado)) }}
                 </span>
             </div>
         </div>
@@ -203,7 +202,7 @@
         <!-- Panel de acciones -->
         <div class="space-y-6">
             <!-- Acciones de revisión -->
-            @if($cuenta->estado === 'pendiente_supervisor')
+            @if($cuenta->estado === 'pendiente_contratacion')
                 <div class="glass-card p-6">
                     <h3 class="text-xl font-semibold text-gray-800 mb-6 flex items-center">
                         <i class="fas fa-clipboard-check text-indigo-500 mr-3"></i>
@@ -211,7 +210,7 @@
                     </h3>
                     
                     <!-- Aprobar -->
-                    <form action="{{ route('cuentas-cobro.aprobar-supervisor', $cuenta->id) }}" method="POST" class="mb-4">
+                    <form action="{{ route('cuentas-cobro.aprobar-contratacion', $cuenta->id) }}" method="POST" class="mb-4">
                         @csrf
                         <button type="submit" 
                                 class="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center">
@@ -228,7 +227,7 @@
                     </button>
                     
                     <!-- Editar -->
-                    <a href="{{ route('supervisor.cuentas-cobro.edit', $cuenta->id) }}" 
+                    <a href="{{ route('contratacion.cuentas-cobro.edit', $cuenta->id) }}" 
                        class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-xl font-medium transition-all flex items-center justify-center">
                         <i class="fas fa-edit mr-2"></i>
                         Editar Cuenta
@@ -244,8 +243,8 @@
                         <p class="text-sm text-blue-800">
                             @if($cuenta->estado === 'borrador')
                                 Esta cuenta está en borrador y debe ser enviada a revisión por el contratista.
-                            @elseif($cuenta->estado === 'pendiente_contratacion')
-                                Esta cuenta está pendiente de aprobación por el área de contratación.
+                            @elseif($cuenta->estado === 'pendiente_supervisor')
+                                Esta cuenta está pendiente de aprobación por el supervisor.
                             @elseif($cuenta->estado === 'pendiente_tesoreria')
                                 Esta cuenta está pendiente de aprobación por tesorería.
                             @elseif($cuenta->estado === 'pendiente_ordenador')
@@ -278,12 +277,22 @@
                         </div>
                     </div>
                     
-                    @if($cuenta->created_at != $cuenta->updated_at)
+                    @if($cuenta->aprobado_supervisor_at)
                         <div class="flex items-start space-x-3">
-                            <div class="w-3 h-3 bg-yellow-500 rounded-full mt-2"></div>
+                            <div class="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
                             <div>
-                                <div class="font-medium text-gray-800">Última actualización</div>
-                                <div class="text-sm text-gray-600">{{ $cuenta->updated_at->format('d/m/Y H:i') }}</div>
+                                <div class="font-medium text-gray-800">Aprobado por Supervisor</div>
+                                <div class="text-sm text-gray-600">{{ \Carbon\Carbon::parse($cuenta->aprobado_supervisor_at)->format('d/m/Y H:i') }}</div>
+                            </div>
+                        </div>
+                    @endif
+                    
+                    @if($cuenta->aprobado_contratacion_at)
+                        <div class="flex items-start space-x-3">
+                            <div class="w-3 h-3 bg-green-500 rounded-full mt-2"></div>
+                            <div>
+                                <div class="font-medium text-gray-800">Aprobado por Contratación</div>
+                                <div class="text-sm text-gray-600">{{ \Carbon\Carbon::parse($cuenta->aprobado_contratacion_at)->format('d/m/Y H:i') }}</div>
                             </div>
                         </div>
                     @endif
