@@ -8,6 +8,8 @@ use App\Http\Controllers\CuentaCobroController;
 use App\Http\Controllers\ContratistaDashboardController;
 use App\Http\Controllers\SupervisorController;
 use App\Http\Controllers\TesoreriaController;
+use App\Http\Controllers\OrdenadorController;
+use App\Http\Controllers\ContratacionController;
 
 // Ruta raíz redirige al login
 Route::get('/', function () {
@@ -164,5 +166,74 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard-data', [TesoreriaController::class, 'getDashboardData'])->name('dashboard');
     });
 
+    // Rutas específicas para ordenador
+    Route::middleware(['auth', 'check.role:ordenador'])->prefix('ordenador')->name('ordenador.')->group(function () {
+        // Dashboard del ordenador
+        Route::get('/', [OrdenadorController::class, 'dashboard'])->name('dashboard');
+        Route::get('/dashboard', [OrdenadorController::class, 'dashboard'])->name('dashboard.main');
+        
+        // Gestión de autorizaciones
+        Route::prefix('autorizaciones')->name('autorizaciones.')->group(function () {
+            Route::get('/', [OrdenadorController::class, 'autorizaciones'])->name('index');
+            Route::get('/{id}', [OrdenadorController::class, 'showAutorizacion'])->name('show');
+            Route::post('/{id}/autorizar', [OrdenadorController::class, 'autorizar'])->name('autorizar');
+        });
+        
+        // Gestión de órdenes autorizadas
+        Route::prefix('ordenes')->name('ordenes.')->group(function () {
+            Route::get('/', [OrdenadorController::class, 'ordenes'])->name('index');
+            Route::get('/{id}', [OrdenadorController::class, 'showOrden'])->name('show');
+        });
+        
+        // Perfil del ordenador
+        Route::get('/perfil', [OrdenadorController::class, 'perfil'])->name('perfil');
+    });
+
+    // API routes para ordenador (protegidas)
+    Route::middleware(['auth', 'check.role:ordenador'])->prefix('api/ordenador')->name('api.ordenador.')->group(function () {
+        Route::get('/dashboard-data', [OrdenadorController::class, 'getOrdenadorData'])->name('dashboard');
+    });
+
+    // Rutas específicas para contratación
+    Route::middleware(['auth', 'check.role:contratacion'])->prefix('contratacion')->name('contratacion.')->group(function () {
+        // Dashboard de contratación
+        Route::get('/', [ContratacionController::class, 'dashboard'])->name('dashboard');
+        Route::get('/dashboard', [ContratacionController::class, 'dashboard'])->name('dashboard.main');
+        
+        // Gestión de contratos
+        Route::prefix('contratos')->name('contratos.')->group(function () {
+            Route::get('/', [ContratacionController::class, 'contratosIndex'])->name('index');
+            Route::get('/crear', [ContratacionController::class, 'contratosCreate'])->name('create');
+            Route::post('/', [ContratacionController::class, 'contratosStore'])->name('store');
+            Route::get('/{id}', [ContratacionController::class, 'contratosShow'])->name('show');
+            Route::get('/{id}/editar', [ContratacionController::class, 'contratosEdit'])->name('edit');
+            Route::put('/{id}', [ContratacionController::class, 'contratosUpdate'])->name('update');
+            Route::delete('/{id}', [ContratacionController::class, 'contratosDestroy'])->name('destroy');
+        });
+        
+        // Gestión de procesos de contratación
+        Route::prefix('procesos')->name('procesos.')->group(function () {
+            Route::get('/', [ContratacionController::class, 'procesosIndex'])->name('index');
+            Route::get('/{estado}', [ContratacionController::class, 'procesosShow'])->name('show');
+        });
+        
+        // Gestión de proveedores
+        Route::prefix('proveedores')->name('proveedores.')->group(function () {
+            Route::get('/', [ContratacionController::class, 'proveedoresIndex'])->name('index');
+            Route::get('/{id}', [ContratacionController::class, 'proveedoresShow'])->name('show');
+        });
+        
+        // Perfil del usuario de contratación
+        Route::get('/perfil', [ContratacionController::class, 'perfil'])->name('perfil');
+    });
+
+    // API routes para contratación (protegidas)
+    Route::middleware(['auth', 'check.role:contratacion'])->prefix('api/contratacion')->name('api.contratacion.')->group(function () {
+        Route::get('/dashboard-data', [ContratacionController::class, 'getContratacionApiData'])->name('dashboard');
+    });
+
+
+
 // Rutas adicionales que requieren roles específicos (placeholders para futuro uso)
 // NOTA: Las rutas principales de dashboard están definidas arriba usando controladores
+

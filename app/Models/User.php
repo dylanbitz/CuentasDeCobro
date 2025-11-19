@@ -96,6 +96,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Alias para cuentasCobro - mantiene compatibilidad con vistas
+     */
+    public function cuenta_cobros()
+    {
+        return $this->hasMany(CuentaCobro::class);
+    }
+
+    /**
      * Obtener estadísticas rápidas del usuario
      */
     public function getEstadisticasAttribute()

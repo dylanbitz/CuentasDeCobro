@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,      // Luego el usuario administrador
             SupervisorUserSeeder::class, // Usuarios supervisores de prueba
             TesoreriaUserSeeder::class,  // Usuarios de tesorería de prueba
+            OrdenadorUserSeeder::class,  // Usuarios ordenadores de prueba
         ]);
     }
 }

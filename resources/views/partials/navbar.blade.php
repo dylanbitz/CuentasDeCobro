@@ -100,6 +100,39 @@
                                 </div>
                             </div>
                         </div>
+                    @elseif($userRole === 'ordenador')
+                        <a href="{{ route('ordenador.dashboard') }}" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-700 hover:text-primary-600 hover:bg-white/50 transition-all duration-300 font-medium">
+                            <i class="fas fa-tachometer-alt text-sm"></i>
+                            <span>Mi Dashboard</span>
+                        </a>
+                        <!-- Dropdown de Ordenador -->
+                        <div class="relative group">
+                            <button class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-700 hover:text-primary-600 hover:bg-white/50 transition-all duration-300 font-medium">
+                                <i class="fas fa-signature text-sm"></i>
+                                <span>Autorizaciones</span>
+                                <i class="fas fa-chevron-down text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+                            </button>
+                            
+                            <!-- Dropdown menu -->
+                            <div class="absolute top-full left-0 mt-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                                <div class="glass-card p-2 shadow-xl">
+                                    <a href="{{ route('ordenador.autorizaciones.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white/70 hover:text-primary-600 transition-all duration-200">
+                                        <i class="fas fa-clock text-orange-500"></i>
+                                        <div>
+                                            <p class="font-medium">Pendientes</p>
+                                            <p class="text-xs text-gray-500">Autorizar cuentas</p>
+                                        </div>
+                                    </a>
+                                    <a href="{{ route('ordenador.ordenes.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white/70 hover:text-primary-600 transition-all duration-200">
+                                        <i class="fas fa-check-circle text-green-500"></i>
+                                        <div>
+                                            <p class="font-medium">Autorizadas</p>
+                                            <p class="text-xs text-gray-500">Historial de órdenes</p>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     @elseif($userRole === 'ordenador_gasto')
                         <a href="#" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-700 hover:text-primary-600 hover:bg-white/50 transition-all duration-300 font-medium">
                             <i class="fas fa-calculator text-sm"></i>
@@ -150,14 +183,45 @@
                             </div>
                         </div>
                     @elseif($userRole === 'contratacion')
-                        <a href="#" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-700 hover:text-primary-600 hover:bg-white/50 transition-all duration-300 font-medium">
-                            <i class="fas fa-file-contract text-sm"></i>
-                            <span>Contratos</span>
+                        <a href="{{ route('contratacion.dashboard') }}" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-700 hover:text-primary-600 hover:bg-white/50 transition-all duration-300 font-medium">
+                            <i class="fas fa-tachometer-alt text-sm"></i>
+                            <span>Mi Dashboard</span>
                         </a>
-                        <a href="#" class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-700 hover:text-primary-600 hover:bg-white/50 transition-all duration-300 font-medium">
-                            <i class="fas fa-chart-bar text-sm"></i>
-                            <span>Reportes</span>
-                        </a>
+                        <!-- Dropdown de Contratación -->
+                        <div class="relative group">
+                            <button class="flex items-center space-x-2 px-4 py-2 rounded-xl text-gray-700 hover:text-primary-600 hover:bg-white/50 transition-all duration-300 font-medium">
+                                <i class="fas fa-handshake text-sm"></i>
+                                <span>Contratación</span>
+                                <i class="fas fa-chevron-down text-xs transition-transform duration-300 group-hover:rotate-180"></i>
+                            </button>
+                            
+                            <!-- Dropdown menu -->
+                            <div class="absolute top-full left-0 mt-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 transform translate-y-2 group-hover:translate-y-0">
+                                <div class="glass-card p-2 shadow-xl">
+                                    <a href="{{ route('contratacion.contratos.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white/70 hover:text-primary-600 transition-all duration-200">
+                                        <i class="fas fa-file-contract text-emerald-500"></i>
+                                        <div>
+                                            <p class="font-medium">Gestión de Contratos</p>
+                                            <p class="text-xs text-gray-500">Crear y administrar</p>
+                                        </div>
+                                    </a>
+                                    <a href="{{ route('contratacion.procesos.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white/70 hover:text-primary-600 transition-all duration-200">
+                                        <i class="fas fa-cogs text-purple-500"></i>
+                                        <div>
+                                            <p class="font-medium">Procesos</p>
+                                            <p class="text-xs text-gray-500">Estados y seguimiento</p>
+                                        </div>
+                                    </a>
+                                    <a href="{{ route('contratacion.proveedores.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white/70 hover:text-primary-600 transition-all duration-200">
+                                        <i class="fas fa-users text-blue-500"></i>
+                                        <div>
+                                            <p class="font-medium">Proveedores</p>
+                                            <p class="text-xs text-gray-500">Directorio y estadísticas</p>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     @endif
                 </div>
                 
@@ -180,10 +244,17 @@
                                     <p class="text-sm font-medium text-gray-800">{{ Auth::user()->name ?? 'Usuario' }}</p>
                                     <p class="text-xs text-gray-500">{{ ucfirst(str_replace('_', ' ', $userRole ?? 'Sin rol')) }}</p>
                                 </div>
+                                @if($userRole === 'ordenador')
+                                <a href="{{ route('ordenador.perfil') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white/70 transition-all duration-200">
+                                    <i class="fas fa-user-circle text-primary-500"></i>
+                                    <span>Mi Perfil</span>
+                                </a>
+                                @else
                                 <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white/70 transition-all duration-200">
                                     <i class="fas fa-user-circle text-primary-500"></i>
                                     <span>Mi Perfil</span>
                                 </a>
+                                @endif
                                 <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-white/70 transition-all duration-200">
                                     <i class="fas fa-cog text-gray-500"></i>
                                     <span>Configuración</span>
@@ -264,6 +335,23 @@
                             <i class="fas fa-chart-line text-blue-500"></i>
                             <span>Reportes</span>
                         </a>
+                    @elseif($userRole === 'ordenador')
+                        <a href="{{ route('ordenador.dashboard') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
+                            <i class="fas fa-tachometer-alt text-indigo-500"></i>
+                            <span>Dashboard Ordenador</span>
+                        </a>
+                        <a href="{{ route('ordenador.autorizaciones.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
+                            <i class="fas fa-clock text-orange-500"></i>
+                            <span>Autorizaciones Pendientes</span>
+                        </a>
+                        <a href="{{ route('ordenador.ordenes.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
+                            <i class="fas fa-check-circle text-green-500"></i>
+                            <span>Órdenes Autorizadas</span>
+                        </a>
+                        <a href="{{ route('ordenador.perfil') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
+                            <i class="fas fa-user-cog text-purple-500"></i>
+                            <span>Mi Perfil</span>
+                        </a>
                     @elseif($userRole === 'ordenador_gasto')
                         <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
                             <i class="fas fa-calculator text-yellow-500"></i>
@@ -291,13 +379,25 @@
                             <span>Pagos Realizados</span>
                         </a>
                     @elseif($userRole === 'contratacion')
-                        <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
-                            <i class="fas fa-file-contract text-blue-500"></i>
-                            <span>Contratos</span>
+                        <a href="{{ route('contratacion.dashboard') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
+                            <i class="fas fa-tachometer-alt text-emerald-500"></i>
+                            <span>Dashboard Contratación</span>
                         </a>
-                        <a href="#" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
-                            <i class="fas fa-chart-bar text-blue-500"></i>
-                            <span>Reportes</span>
+                        <a href="{{ route('contratacion.contratos.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
+                            <i class="fas fa-file-contract text-emerald-500"></i>
+                            <span>Gestión de Contratos</span>
+                        </a>
+                        <a href="{{ route('contratacion.procesos.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
+                            <i class="fas fa-cogs text-purple-500"></i>
+                            <span>Procesos</span>
+                        </a>
+                        <a href="{{ route('contratacion.proveedores.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
+                            <i class="fas fa-users text-blue-500"></i>
+                            <span>Proveedores</span>
+                        </a>
+                        <a href="{{ route('contratacion.perfil') }}" class="flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-white/70 transition-all duration-200">
+                            <i class="fas fa-user-cog text-gray-500"></i>
+                            <span>Mi Perfil</span>
                         </a>
                     @endif
                 </div>
