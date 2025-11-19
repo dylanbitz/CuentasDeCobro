@@ -7,20 +7,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Models\Roles;
+use App\Models\CuentaCobro;
 
 class AuthController extends Controller
 {
-    /**
-     * Mostrar el formulario de login
-     */
     public function showLoginForm()
     {
         return view('auth.login');
     }
 
-    /**
-     * Procesar el login
-     */
     public function login(Request $request)
     {
         $credentials = $request->validate([
@@ -40,9 +35,6 @@ class AuthController extends Controller
         ])->onlyInput('email');
     }
 
-    /**
-     * Cerrar sesión
-     */
     public function logout(Request $request)
     {
         Auth::logout();
@@ -54,9 +46,6 @@ class AuthController extends Controller
             ->with('success', 'Has cerrado sesión exitosamente.');
     }
 
-    /**
-     * Mostrar el dashboard según el rol del usuario
-     */
     public function dashboard()
     {
         $user = Auth::user();
@@ -68,8 +57,11 @@ class AuthController extends Controller
             'userRoleDescription' => $user->role ? $user->role->description : 'Sin rol asignado'
         ];
 
+        $dashboardLink = 'shared.dashboard-base';
+
         // Datos específicos para el alcalde
         if ($user->hasRole('alcalde')) {
+            $dashboardLink = 'alcalde.dashboard';
             $dashboardData = array_merge($dashboardData, [
                 'totalUsers' => User::count(),
                 'totalRoles' => Roles::count(),
@@ -83,50 +75,32 @@ class AuthController extends Controller
 
         // Datos específicos para supervisor
         if ($user->hasRole('supervisor')) {
-            $dashboardData = array_merge($dashboardData, [
-                'pendingReviews' => 0, // Aquí irían las cuentas de cobro pendientes
-                'approvedToday' => 0,
-                'rejectedToday' => 0
-            ]);
+            // Redirigir a dashboard específico de supervisor
+            return redirect()->route('supervisor.dashboard');
         }
 
         // Datos específicos para contratista
         if ($user->hasRole('contratista')) {
-            $dashboardData = array_merge($dashboardData, [
-                'myCuentasCobro' => 0, // Aquí irían sus cuentas de cobro
-                'pendingApproval' => 0,
-                'approved' => 0,
-                'rejected' => 0
-            ]);
+            // Redirigir a dashboard específico de contratista
+            return redirect()->route('contratista.dashboard');
         }
 
         // Datos específicos para tesorería
         if ($user->hasRole('tesoreria')) {
-            $dashboardData = array_merge($dashboardData, [
-                'pendingPayments' => 0,
-                'paymentsToday' => 0,
-                'totalPaid' => 0
-            ]);
+            // Redirigir a dashboard específico de tesorería
+            return redirect()->route('tesoreria.dashboard');
         }
 
         // Datos específicos para ordenador del gasto
         if ($user->hasRole('ordenador_gasto')) {
-            $dashboardData = array_merge($dashboardData, [
-                'pendingAuthorizations' => 0,
-                'authorizedToday' => 0,
-                'budgetStatus' => 0
-            ]);
+            return redirect()->route('ordenador-gasto.dashboard');
         }
 
         // Datos específicos para contratación
         if ($user->hasRole('contratacion')) {
-            $dashboardData = array_merge($dashboardData, [
-                'activeContracts' => 0,
-                'pendingContracts' => 0,
-                'totalContractors' => 0
-            ]);
+            return redirect()->route('contratacion.dashboard');
         }
 
-        return view('dashboard', $dashboardData);
+        return view($dashboardLink, $dashboardData);
     }
 }

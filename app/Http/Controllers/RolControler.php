@@ -21,15 +21,17 @@ class RolControler extends Controller
     /**
      * Mostrar lista de todos los roles
      */
-    public function index()
+    public function index(Roles $role)
     {
         // Solo admins pueden ver todos los roles
         if (!Auth::user()->isAdmin()) {
             return redirect('/dashboard')->with('error', 'No tienes permisos para acceder a esta sección.');
         }
 
+        $user = Auth::user();
+
         // CORREGIR: usar withCount con la relación correcta
-        $roles = Roles::withCount('users')->get();
+        $roles = Roles::withCount('users')->paginate(10);
         return view('roles.index', compact('roles'));
     }
 
@@ -85,6 +87,31 @@ class RolControler extends Controller
         $availablePermissions = $this->getAvailablePermissions();
         
         return view('roles.show', compact('role', 'users', 'availablePermissions'));
+    }
+
+    /**
+     * Mostrar página de gestión de usuarios con roles
+     */
+    public function showUsuarios()
+    {
+        if (!Auth::user()->hasAnyRole(['alcalde', 'contratacion'])) {
+            return redirect('/dashboard')->with('error', 'No tienes permisos para gestionar usuarios.');
+        }
+
+        // Obtener todos los usuarios con sus roles
+        $usuarios = User::with('role')
+            ->orderBy('name')
+            ->paginate(15);
+
+        // Obtener todos los roles disponibles
+        $roles = Roles::orderBy('name')->get();
+
+        // Estadísticas
+        $totalUsuarios = User::count();
+        $usuariosSinRol = User::whereNull('role_id')->count();
+        $usuariosConRol = User::whereNotNull('role_id')->count();
+
+        return view('roles.usuarios', compact('usuarios', 'roles', 'totalUsuarios', 'usuariosSinRol', 'usuariosConRol'));
     }
 
     /**

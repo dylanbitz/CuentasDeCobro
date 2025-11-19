@@ -86,4 +86,87 @@ class User extends Authenticatable
     {
         return $this->hasAnyRole(['alcalde', 'ordenador_gasto']);
     }
+
+    /**
+     * Obtener las cuentas de cobro del usuario
+     */
+    public function cuentasCobro()
+    {
+        return $this->hasMany(CuentaCobro::class);
+    }
+
+    /**
+     * Obtener las notificaciones del usuario
+     */
+    public function notifications()
+    {
+        return $this->hasMany(Notification::class);
+    }
+
+    /**
+     * Obtener notificaciones no leídas
+     */
+    public function unreadNotifications()
+    {
+        return $this->hasMany(Notification::class)->where('leida', false);
+    }
+
+    /**
+     * Obtener estadísticas rápidas del usuario
+     */
+    public function getEstadisticasAttribute()
+    {
+        if (!$this->hasRole('contratista')) {
+            return null;
+        }
+
+        return [
+            'total_cuentas' => $this->cuentasCobro()->count(),
+            'pendientes' => $this->cuentasCobro()->whereIn('estado', [
+                CuentaCobro::ESTADO_PENDIENTE_SUPERVISOR,
+                CuentaCobro::ESTADO_PENDIENTE_CONTRATACION,
+                CuentaCobro::ESTADO_PENDIENTE_TESORERIA,
+                CuentaCobro::ESTADO_PENDIENTE_ORDENADOR
+            ])->count(),
+            'aprobadas' => $this->cuentasCobro()->where('estado', CuentaCobro::ESTADO_APROBADA)->count(),
+            'pagadas' => $this->cuentasCobro()->where('estado', CuentaCobro::ESTADO_PAGADA)->count(),
+            'valor_total_pagado' => $this->cuentasCobro()->where('estado', CuentaCobro::ESTADO_PAGADA)->sum('valor')
+        ];
+    }
+
+    /**
+     * Obtener el nombre del rol formateado
+     */
+    public function getRoleNameFormattedAttribute()
+    {
+        if (!$this->role) {
+            return 'Sin rol asignado';
+        }
+
+        return ucfirst(str_replace('_', ' ', $this->role->name));
+    }
+
+    /**
+     * Verificar si el usuario puede ver todas las cuentas de cobro
+     */
+    public function canViewAllCuentasCobro()
+    {
+        return $this->hasAnyRole(['supervisor', 'ordenador_gasto', 'tesoreria', 'alcalde', 'contratacion']);
+    }
+
+    /**
+     * Verificar si el usuario puede aprobar cuentas de cobro
+     */
+    public function canApproveCuentasCobro()
+    {
+        return $this->hasAnyRole(['supervisor', 'ordenador_gasto', 'contratacion', 'tesoreria']);
+    }
+
+    /**
+     * Verificar si el usuario puede procesar pagos
+     */
+    public function canProcessPayments()
+    {
+        return $this->hasRole('tesoreria');
+    }
 }
